@@ -76,11 +76,13 @@ class TimerVC: UIViewController {
     
     var timeRemaining = 0
     var timer = Timer()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setup()
         //TODO: Set button actions for startPauseButton, resetButton and closeButton
+        startPauseButton.addTarget(self, action: #selector(startPauseButtonPressed), for: .touchUpInside)
+        resetButton.addTarget(self, action: #selector(resetButtonPressed), for: .touchUpInside)
         
         resetAll()
     }
@@ -89,24 +91,36 @@ class TimerVC: UIViewController {
     
     @objc func startPauseButtonPressed(_ sender: UIButton) {
         if timer.isValid {
-         // Timer running
-         // TODO: Change the button’s title to “Continue”
-         // TODO: Enable the reset button
-         // TODO: Pause the timer, call the method pauseTimer
+            // Timer running
+            // TODO: Change the button’s title to “Continue”
+            sender.setTitle("Continue", for: .normal)
+            // TODO: Enable the reset button
+            resetButton.isEnabled = true
+            // TODO: Pause the timer, call the method pauseTimer
+            pauseTimer()
             
-           
         } else {
-         // Timer stopped or hasn't started
-         // TODO: Change the button’s title to “Pause”
-         // TODO: Disable the Reset button
+            // Timer stopped or hasn't started
+            // TODO: Change the button’s title to “Pause”
+            sender.setTitle("Pause", for: .normal)
+            // TODO: Disable the Reset button
+            resetButton.isEnabled = false
             
             if currentInterval == 0 && timeRemaining == pomodoroDuration {
                 // We are at the start of a cycle
                 // TODO: begin the cycle of intervals
+                currentInterval = 1
+                startTimer()
                 
             } else {
                 // We are in the middle of a cycle
                 // TODO: Resume the timer.
+                currentInterval += 1
+                messageLabel.text = CycleStatus.active.rawValue
+                timer = Timer.scheduledTimer(timeInterval: 1.0,
+                                             target: self,
+                                             selector: #selector(runTimer),
+                                             userInfo: nil, repeats: true)
                 
             }
         }
@@ -117,8 +131,9 @@ class TimerVC: UIViewController {
             timer.invalidate()
         }
         //TODO: call the reset method
+        resetAll()
     }
-
+    
     // MARK: Create UI
     
     func setup(){
@@ -149,7 +164,10 @@ class TimerVC: UIViewController {
     
     func startTimer() {
         //TODO: create the timer, the action called should be runTimer()
-        
+        timer = Timer.scheduledTimer(timeInterval: 1.0,
+                                     target: self,
+                                     selector: #selector(runTimer),
+                                     userInfo: nil, repeats: true)
     }
     
     @objc func runTimer() {
@@ -161,12 +179,12 @@ class TimerVC: UIViewController {
             startNextInterval()
         }
     }
-
+    
     func pauseTimer() {
         timer.invalidate()
         messageLabel.text = CycleStatus.pause.rawValue
     }
-
+    
     func resetAll() {
         currentInterval = 0
         tomatoesView.updateTomatoes(to: 1)
@@ -176,7 +194,7 @@ class TimerVC: UIViewController {
         timeRemaining = pomodoroDuration
         updateTime()
     }
-
+    
     func startNextInterval() {
         if currentInterval < intervals.count {
             // If not done with all intervals, do the next one.
@@ -197,19 +215,23 @@ class TimerVC: UIViewController {
         } else {
             // If all intervals are complete, reset all.
             // TODO: Post Notification
+            let name = Notification.Name(notificationKey)
+            NotificationCenter.default.post(name: name, object: nil)
             resetAll()
         }
     }
-
+    
     // MARK: Formatters
     
     // Input: number of seconds, returns it as (minutes, seconds).
     func minutesAndSeconds(from seconds: Int) -> (Int, Int) {
         return (seconds / 60, seconds % 60)
     }
-
+    
     // Input: number, returns a string of 2 digits with leading zero if needed
     func formatNumber(_ number: Int) -> String {
         return String(format: "%02d", number)
     }
 }
+
+let notificationKey = "setup-next-interval"
